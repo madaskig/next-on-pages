@@ -144,7 +144,8 @@ export default {
       }
     }
 
-    for (const { matchers, entrypoint } of Object.values(__FUNCTIONS__)) {
+    for (const [key, value] of Object.entries(__FUNCTIONS__)) {
+      const { matchers, entrypoint } = value;
       let found = false;
       for (const matcher of matchers) {
         if (matcher.regexp) {
@@ -170,7 +171,7 @@ export default {
       }
 
       if (found) {
-        const adjustedRequest = adjustRequestForVercel(request);
+        const adjustedRequest = adjustRequestForVercel(request, key);
         return entrypoint.default(adjustedRequest, context);
       }
     }
@@ -183,9 +184,10 @@ export default {
  * Adjusts the request so that it is formatted as if it were provided by Vercel
  *
  * @param request the original request received by the worker
+ * @param matchedPath the path that was matched by the worker
  * @returns the adjusted request to pass to Next
  */
-function adjustRequestForVercel(request: Request): Request {
+function adjustRequestForVercel(request: Request, matchedPath: string): Request {
   const adjustedHeaders = new Headers(request.headers);
 
   adjustedHeaders.append("x-vercel-ip-city", request.cf?.city);
@@ -193,6 +195,7 @@ function adjustRequestForVercel(request: Request): Request {
   adjustedHeaders.append("x-vercel-ip-country-region", request.cf?.region);
   adjustedHeaders.append("x-vercel-ip-latitude", request.cf?.latitude);
   adjustedHeaders.append("x-vercel-ip-longitude", request.cf?.longitude);
+  adjustedHeaders.append("x-matched-path", matchedPath);
 
   return new Request(request, { headers: adjustedHeaders });
 }
